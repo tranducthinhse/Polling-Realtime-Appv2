@@ -1,21 +1,16 @@
-import { Server } from 'socket.io';
+// socket.js
+import { Server } from "socket.io";
 
-let io = null;
+let io;
 
-export const initIO = (httpServer) => {
-  io = new Server(httpServer, {
-    cors: {
-      origin: "http://localhost:3000",
-      methods: ["GET", "POST"],
-      credentials: true
-    }
-  });
+export const initIO = (server, options = {}) => {
+  io = new Server(server, options); // ✅ CORS được truyền từ server.js
 
   io.on("connection", (socket) => {
-    console.log("Client connected:", socket.id);
-    
+    console.log("🟢 New client connected:", socket.id);
+
     socket.on("disconnect", () => {
-      console.log("Client disconnected:", socket.id);
+      console.log("🔴 Client disconnected:", socket.id);
     });
   });
 
@@ -23,8 +18,6 @@ export const initIO = (httpServer) => {
 };
 
 export const getIO = () => {
-  if (!io) {
-    throw new Error('Socket.io not initialized!');
-  }
+  if (!io) throw new Error("Socket.io not initialized!");
   return io;
 };
