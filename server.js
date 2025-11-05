@@ -13,15 +13,15 @@ dotenv.config();
 const app = express();
 const server = createServer(app);
 
-// ✅ CORS cho cả local & Netlify
+// ✅ Cấu hình CORS cho API
 app.use(cors({
   origin: ["http://localhost:3000", "https://pollingrealtime.netlify.app"],
-  credentials: true
+  credentials: true,
 }));
 
 app.use(express.json());
 
-// ✅ Kiểm tra server
+// ✅ Routes
 app.get("/", (req, res) => {
   res.json({ message: "Server is running 🚀" });
 });
@@ -29,19 +29,19 @@ app.get("/", (req, res) => {
 app.use("/api/polls", pollRoutes);
 app.use("/api/auth", authRoutes);
 
-// ✅ Kết nối Mongo
+// ✅ Kết nối MongoDB + khởi tạo server
 const startServer = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URI);
     console.log("✅ MongoDB connected");
 
-    // ✅ Thêm cấu hình CORS cho Socket.IO
+    // ✅ Cấu hình CORS riêng cho Socket.IO
     initIO(server, {
       cors: {
         origin: ["http://localhost:3000", "https://pollingrealtime.netlify.app"],
         methods: ["GET", "POST"],
-        credentials: true
-      }
+        credentials: true,
+      },
     });
 
     const PORT = process.env.PORT || 5000;
