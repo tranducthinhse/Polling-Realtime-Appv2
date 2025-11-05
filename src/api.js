@@ -1,7 +1,7 @@
 import axios from "axios";
 import { io } from "socket.io-client";
 
-const BASE_URL = "https://radiant-mindfulness-production.up.railway.app";
+const BASE_URL = "https://polling-realtime-appv2.onrender.com";
 
 const api = axios.create({
   baseURL: `${BASE_URL}/api`,
