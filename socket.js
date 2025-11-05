@@ -1,10 +1,9 @@
-// socket.js
 import { Server } from "socket.io";
 
 let io;
 
 export const initIO = (server, options = {}) => {
-  io = new Server(server, options); // ✅ CORS được truyền từ server.js
+  io = new Server(server, options);
 
   io.on("connection", (socket) => {
     console.log("🟢 New client connected:", socket.id);
