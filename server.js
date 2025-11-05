@@ -1,64 +1,72 @@
 import express from "express";
-import http from "http";
-import { Server } from "socket.io";
 import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
+import { createServer } from "http";
+import pollRoutes from "./routes/pollRoutes.js";
+import authRoutes from "./routes/authRoutes.js";
+import { initIO } from "./socket.js";
 
 dotenv.config();
 
 const app = express();
-const server = http.createServer(app);
+const server = createServer(app);
 
-// ✅ Cho phép CORS từ Netlify (và localhost để test)
+// Middleware
 app.use(cors({
-  origin: [
-    "https://pollingrealtime.netlify.app",
-    "http://localhost:3000"
-  ],
-  methods: ["GET", "POST", "PUT", "DELETE"],
+  origin: ["http://localhost:3000"], // React frontend
   credentials: true
 }));
-
 app.use(express.json());
 
-// ✅ Kết nối MongoDB
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("✅ MongoDB Connected"))
-  .catch((err) => console.error("❌ MongoDB Connection Error:", err));
-
-// ✅ Cấu hình Socket.io
-const io = new Server(server, {
-  cors: {
-    origin: [
-      "https://pollingrealtime.netlify.app",
-      "http://localhost:3000"
-    ],
-    methods: ["GET", "POST"],
-  },
+// ✅ Health check
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", time: new Date().toISOString() });
 });
 
-// ✅ Xử lý sự kiện Socket.io
-io.on("connection", (socket) => {
-  console.log("🔌 Client connected:", socket.id);
+// Routes
+app.use("/api/polls", pollRoutes);
+app.use("/api/auth", authRoutes);
 
-  socket.on("disconnect", () => {
-    console.log("❌ Client disconnected:", socket.id);
+// ✅ Error handling middleware (placed AFTER routes)
+app.use((err, req, res, next) => {
+  console.error("❌ Error:", err.stack);
+  res.status(500).json({
+    error: "Something went wrong!",
+    message: err.message,
   });
 });
 
-// ✅ Ví dụ API test
-app.get("/", (req, res) => {
-  res.send("Server is running fine ✅");
+// ✅ Start server with MongoDB connection
+const startServer = async () => {
+  try {
+    await mongoose.connect(process.env.MONGO_URI);
+    console.log("✅ MongoDB Connected");
+
+    // Initialize Socket.IO
+    initIO(server);
+
+    const PORT = process.env.PORT || 5000;
+    server.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+      console.log(`🔗 MongoDB connected successfully`);
+    });
+  } catch (err) {
+    console.error("❌ Startup Error:", err);
+    process.exit(1);
+  }
+};
+
+// ✅ Handle fatal errors
+process.on("uncaughtException", (error) => {
+  console.error("❌ Uncaught Exception:", error);
+  process.exit(1);
 });
 
-app.get("/api/polls", (req, res) => {
-  res.json({ message: "Hello from backend!" });
+process.on("unhandledRejection", (error) => {
+  console.error("❌ Unhandled Rejection:", error);
+  process.exit(1);
 });
 
-// ✅ Cổng server
-const PORT = process.env.PORT || 5000;
-
-server.listen(PORT, () => {
-  console.log(`✅ Server running on port ${PORT}`);
-});
+// Run
+startServer();
